@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>TP prise de notes</title>
+</head>
+<body onload="afficherNotes()">
+	
+	<div id="listeNotes"></div>
+	
+	<textarea rows="4" cols="60" id="nouvelleNote"></textarea>
+	
+	<input type="button" value="Ajouter" onclick="ajouterNote()" />
+
+	<script type="text/javascript">
+		function createXHR() { //XmlHTTPRequest
+			if (window.XMLHttpRequest)
+				xhr = new XMLHttpRequest();
+			else if (window.ActiveXObject)
+				xhr = new ActiveXObject("Msxml2.XMLHTTP");
+		
+			return xhr;
+		}
+
+		function ajouterNote() {
+			var xhr = createXHR();
+			
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					afficherNouvelleNote(xhr.responseText);
+				}
+			};
+			
+			var laNote = document.getElementById("nouvelleNote");
+			datasFormulaire = "content=" + encodeURIComponent(laNote.value);
+			
+			laNote.value="";
+			
+			xhr.open("POST", "/TPPriseDeNotes/rest/notesBDD/", true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhr.send(datasFormulaire);
+		}
+
+		function modifier(note, id) {
+			var xhr = createXHR();
+			
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					var reponseJSON = JSON.parse(xhr.responseText);
+					note.value = reponseJSON.content; 
+				}
+			};
+			
+			datasFormulaire = "content=" + encodeURIComponent(note.value);
+			xhr.open("PUT", "/TPPriseDeNotes/rest/notesBDD/" + id, true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhr.send(datasFormulaire);
+		}
+
+		function supprimer(div, id)
+		{
+			var xhr = createXHR();
+			
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					div.remove();
+				}
+			};
+			
+			xhr.open("DELETE", "/TPPriseDeNotes/rest/notesBDD/" + id, true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.send();
+		}
+
+		function afficherNotes() {
+			var xhr = createXHR();
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					afficherToutesNotes(xhr.responseText);
+				}
+			};
+			
+			xhr.open("GET", "/TPPriseDeNotes/rest/notesBDD/", true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.send();
+		}
+		
+		// Ici, reponseJSON représente UNE note au format JSON
+		function creerHTMLNote(reponseJSON) {
+			// <div id="listeNotes"></div>
+			var listeNotes = document.getElementById("listeNotes");
+			
+			
+			// <div></div>
+			var uneDiv = document.createElement("div");
+			
+			
+			// <textarea rows=4 cols=60> Le contenu de ma note en cours (reponseJSON.content) </textarea>
+			var laNote = document.createElement("textarea");
+			laNote.rows=4;
+			laNote.cols=60;
+			laNote.innerHTML = reponseJSON.content;
+			
+			
+			// <p> La date de ma note en cours (reponseJSON.date) </p>
+			var laDate = document.createElement("p");
+			laDate.innerHTML = reponseJSON.date;
+			
+			// <input type="button" value="Modifier" onclick="modifier(laNote, reponseJSON.id)"/>
+			var boutonModifier = document.createElement("input");
+			boutonModifier.type="button";
+			boutonModifier.value="Modifier";
+			boutonModifier.onclick=function() {modifier(laNote, reponseJSON.id)};
+			
+			
+			// <input type="button" value="Supprimer" onclick="supprimer(uneDiv, reponseJSON.id)"/>
+			var boutonSupprimer = document.createElement("input");
+			boutonSupprimer.type="button";
+			boutonSupprimer.value="Supprimer";
+			boutonSupprimer.onclick=function() {supprimer(uneDiv, reponseJSON.id)};
+			
+			
+			/* 
+				<div>
+					<p> La date de ma note en cours (reponseJSON.date) </p>
+					<textarea rows=4 cols=60> Le contenu de ma note en cours (reponseJSON.content) </textarea>
+					<input type="button" value="Modifier" onclick="modifier(laNote, reponseJSON.id)"/>
+					<input type="button" value="Supprimer" onclick="supprimer(uneDiv, reponseJSON.id)"/>
+				</div>
+			*/
+			uneDiv.appendChild(laDate);
+			uneDiv.appendChild(laNote);
+			uneDiv.appendChild(boutonModifier);
+			uneDiv.appendChild(boutonSupprimer);
+			
+			
+			/*
+				<div id="listeNotes">
+					<div>
+						<p> La date de ma note en cours (reponseJSON.date) </p>
+						<textarea rows=4 cols=60> Le contenu de ma note en cours (reponseJSON.content) </textarea>
+						<input type="button" value="Modifier" onclick="modifier(laNote, reponseJSON.id)"/>
+						<input type="button" value="Supprimer" onclick="supprimer(uneDiv, reponseJSON.id)"/>
+					</div>
+				</div>
+			*/
+			listeNotes.appendChild(uneDiv);
+		}
+
+		function afficherNouvelleNote (reponse) {
+			var reponseJSON = JSON.parse(reponse);
+			creerHTMLNote(reponseJSON);
+		}
+		
+		function afficherToutesNotes(reponse) {
+			var reponseJSON = JSON.parse(reponse);
+			for (i=0; i<reponseJSON.length; i++) {
+				creerHTMLNote(reponseJSON[i]);
+			}
+		}
+	</script>
+</body>
+</html>
